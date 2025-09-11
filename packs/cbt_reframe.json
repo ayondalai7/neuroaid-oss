@@ -1,0 +1,12 @@
+{
+  "id": "cbt-reframe",
+  "title": "CBT Thought Reframing",
+  "questions": [
+    "What is the automatic thought that's bothering you?",
+    "What's the evidence that supports this thought?",
+    "What's the evidence that does **not** support it?",
+    "If a close friend had this thought, what would you tell them?",
+    "What's a more balanced way to view this situation?"
+  ],
+  "closing": "Let's capture your new balanced thought in one sentence."
+}
