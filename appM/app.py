@@ -1,15 +1,13 @@
 import os, io, csv, json, time, datetime as dt, requests, streamlit as st
 from pathlib import Path
-
 from appM.config import ENDPOINT, MODEL_NAME, REPO_URL, DEMO_URL
 from appM.neuroaid import backends
 from appM.neuroaid.prompts import SYSTEM_BASE
 from appM.neuroaid.utils import append_journal, load_journal
+from urllib.parse import quote  
 
-# Config 
 st.set_page_config(page_title="NeuroAid OSS", page_icon="🧠", layout="wide")
 
-#  Cache (speed up reloads) 
 @st.cache_resource
 def load_css_text() -> str:
     css_path = Path(__file__).resolve().parent / "theme.css"
@@ -17,7 +15,6 @@ def load_css_text() -> str:
 
 @st.cache_resource
 def cached_readiness() -> tuple[bool, str]:
-    # run once per server boot; avoids slow checks every rerun
     return backends.readiness(model_name=MODEL_NAME, endpoint=ENDPOINT, do_warmup=False)
 
 @st.cache_data
@@ -32,8 +29,6 @@ def load_journal_cached():
 st.markdown(f"<style>{load_css_text()}</style>", unsafe_allow_html=True)
 ready, _msg = cached_readiness()
 status_text = "✅ Model is ready" if ready else "⏳ Model loading…"
-
-from urllib.parse import quote  # add this import
 
 
 GITHUB_SVG = """<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
@@ -95,9 +90,6 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
-
-
-#Crisis Disclaimer
 st.sidebar.markdown("""
 <div class="crisis small">
   ⚠️ Crisis Support
@@ -115,11 +107,11 @@ if "messages" not in st.session_state:
 if "typing" not in st.session_state:
     st.session_state.typing = False
 
-# Chat 
+
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 st.markdown("<h2 class='chat-title'>Conversation</h2>", unsafe_allow_html=True)
 
-# Render history 
+
 for m in st.session_state.messages:
     if m["role"] == "system":
         continue
@@ -130,13 +122,10 @@ for m in st.session_state.messages:
     )
 
 
-# Chat input 
 text = st.chat_input("Type a message…", disabled=not ready)
 if text:
-    # Append user message
+    
     st.session_state.messages.append({"role": "user", "content": text})
-
-    # Open one assistant bubble
     st.markdown("<div class='msg assistant'><div class='bubble streaming'>", unsafe_allow_html=True)
     stream_slot = st.empty()
     st.markdown("</div></div>", unsafe_allow_html=True)
@@ -149,27 +138,23 @@ if text:
         model=MODEL_NAME
     ):
         reply_parts.append(delta)
-        # Render continuously with a blinking cursor ▌
         stream_slot.markdown("".join(reply_parts) + "▌")
-
-    # Finalize and save (remove cursor)
+        
     final_reply = "".join(reply_parts)
     stream_slot.markdown(final_reply)
     st.session_state.messages.append({"role": "assistant", "content": final_reply})
-
     st.rerun()
 
 
-#  Journal (fast + safe)
 data = load_journal_cached()
 st.sidebar.header("Session")
 
-#  Start New Session
+
 if st.sidebar.button("Start New Session"):
     st.session_state.clear()
-    st.rerun()  # was st.experimental_rerun()
+    st.rerun()  
 
-# Export JSON
+
 try:
     j = io.BytesIO()
     j.write(json.dumps(data, indent=2).encode("utf-8"))
@@ -178,7 +163,7 @@ try:
 except Exception as e:
     st.sidebar.warning(f"JSON export failed: {e}")
 
-# Export CSV
+
 try:
     c = io.StringIO()
     w = csv.DictWriter(c, fieldnames=["timestamp", "assistant", "user"])
@@ -189,7 +174,7 @@ try:
 except Exception as e:
     st.sidebar.warning(f"CSV export failed: {e}")
 
-# Save Current to Journal 
+
 if st.sidebar.button("Save Current to Journal"):
     try:
         last_assistant = next((m["content"] for m in reversed(st.session_state.messages) if m["role"] == "assistant"), "")
@@ -201,9 +186,9 @@ if st.sidebar.button("Save Current to Journal"):
         }
         p = append_journal(entry)
         st.sidebar.success(f"Saved to {p.name} (in /data).")
-        st.balloons()                  # 🎈 add the celebration
-        st.cache_data.clear()          # refresh cached journal
-        st.rerun()                     # was st.experimental_rerun()
+        st.balloons()              
+        st.cache_data.clear()        
+        st.rerun()                    
     except Exception as e:
         st.sidebar.warning(f"Could not save journal entry: {e}")
 

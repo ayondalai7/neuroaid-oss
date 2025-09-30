@@ -105,7 +105,6 @@ def stream_chat(messages: List[Dict],
         "stream": True
     }
     try:
- 
         with requests.post(url, json=payload,
                            stream=True,
                            timeout=(connect_timeout, None)) as r:
